@@ -109,7 +109,7 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 	for (int i = 0; i < nTin; i++)
 	{
 		for (int k = 0; k < 3; k++) {
-			int j = tri.triList[i * 3 + k];
+			int j = m_tri.triList[i * 3 + k];
 			lx[k] = pt[j].lx;
 			ly[k] = pt[j].ly;
 			rx[k] = pt[j].rx;
@@ -169,7 +169,7 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 					pS = (T*)GetBiPixelEx(float(x), float(y), lcols, lrows, nPxlBytes, (T*)plindata, nBkgrdClr);
 					// 影像有效范围为(1,254)
 					for (int j = 0; j < nPxlBytes; j++) {
-						*pS = max(1, min(nrange, *pS));
+						*pS = max(1, min(nrange, (int)*pS));
 					}
 					memcpy(pD, pS, sizeof(T)*nPxlBytes);
 				}

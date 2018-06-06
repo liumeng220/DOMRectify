@@ -55,14 +55,14 @@ private:
 	void releaseImages();
 
 public:	
-	void addmatchpt(CorrespondPt *pt);        //增加匹配点，该点的id比已有点更大
+	void addmatchpt(CorrespondPt *pt, bool borgphoto = false);        //增加匹配点，该点的id比已有点更大
 	void deletematchpts(vector<char *> pIDlist);  //删除匹配点
 
 	void rectifyDomImages(); //纠正影像,直接调用
 	//影像块纠正
 	template <typename T>
 	//利用原始影像纠正
-	void smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, const T* plindata, int nPxlBytes, T** poutdata, int nBkgrdClr = 0);
+	void smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, T* plindata, int nPxlBytes, T** poutdata, int nBkgrdClr = 0);
 
 public:
 	string m_strdom;
@@ -82,13 +82,15 @@ public:
 };
 
 template<typename T>
-inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, const T * plindata, int nPxlBytes, T ** poutdata, int nBkgrdClr)
+inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, T * plindata, int nPxlBytes, T ** poutdata, int nBkgrdClr)
 {
+
 	updatetriangulateio();
 
 	int nrange = 254;
 	if (sizeof(T) == sizeof(unsigned short)) nrange = 65535;
 	//小面元纠正
+	if (*poutdata) { delete[](*poutdata); *poutdata = NULL; }
 	T *pdata = new T[lrows*lcols*nPxlBytes];
 	memcpy(pdata, plindata, sizeof(T)*lrows*lcols*nPxlBytes);
 
@@ -138,7 +140,7 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 			}
 		}
 
-		T* pRow = (T*)plindata;
+		T* pRow = (T*)pdata;
 		double xc[4], yc, xi, x, y;
 		for (int yi = 0; yi <= lrows; yi++, pRow += lcols*nPxlBytes) {
 			int n = 0;
@@ -179,4 +181,19 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 
 	if (pTinIdx != NULL) { delete[] pTinIdx; pTinIdx = NULL; }
 	if (pt) { delete[]pt; pt = NULL; }
+	*poutdata = pdata;
+
+	//保存
+	//CIdpmImage inphoto, outphoto;
+	//inphoto.Open("C:\\Users\\Dabo\\Desktop\\indata.tif", CIdpmImage::modeCreate);
+	//outphoto.Open("C:\\Users\\Dabo\\Desktop\\oudata.tif", CIdpmImage::modeCreate);
+	//inphoto.SetBands(nPxlBytes); inphoto.SetRows(lrows); inphoto.SetCols(lcols);
+	//outphoto.SetBands(nPxlBytes); outphoto.SetRows(lrows); outphoto.SetCols(lcols);
+	//double *at = m_matchImage->GetGeoTransform();
+	//inphoto.SetGeoTransform(at); outphoto.SetGeoTransform(at);
+	//for (int i = 0; i < lrows; i++){
+	//	inphoto.Write(plindata + i * lcols * nPxlBytes, i);
+	//	outphoto.Write(pdata + i * lcols * nPxlBytes, i);
+	//}
+	//inphoto.Close(); outphoto.Close();
 }

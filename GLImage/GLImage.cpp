@@ -954,11 +954,10 @@ int  OrthoImage::GetTriangleVBO()
 	return m_TriangleVBOID;
 }
 
-void OrthoImage::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE **data)
+void OrthoImage::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE *&data)
 {
-	BYTE*data2 = *data;
+//	BYTE*data2 = *data;
 	GDALDataset* pDataSet = (GDALDataset *)GDALOpen(strImagePath, GA_ReadOnly);
-	int bandsmap[3] = { 1, 2, 3 };
 	if (!pDataSet)
 	{
 		return;
@@ -975,39 +974,44 @@ void OrthoImage::ReadImage(CString strImagePath, int stcol, int strow, int edcol
 	}
 	int nCols = pDataSet->GetRasterXSize();
 	int nRows = pDataSet->GetRasterYSize();
-	int nPixelCount = 256 * 256 * 3;
 	int nBandCount = pDataSet->GetRasterCount();
-	nBandCount--;
-	data2 = new BYTE[memWidth*memHeight*nBandCount];
-	memset(data2, 0, memWidth*memHeight*nBandCount);
+	int*bandsmap = new int[nBandCount];
+	for (int i = 0; i<nBandCount; i++)
+	{
+		bandsmap[i] = i + 1;
+	}
 
-	CPLErr err = pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol, edrow - strow, data2, memWidth, memHeight, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * memWidth * nPixelSize, nPixelSize);
+	int nPixelCount = 256 * 256 * 3;
+	data = new BYTE[memWidth*memHeight*nBandCount];
+	memset(data, 0, memWidth*memHeight*nBandCount);
+
+	CPLErr err = pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol + 1, edrow - strow + 1, data, memWidth, memHeight, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * memWidth * nPixelSize, nPixelSize);
 
 	if (dT == GDT_UInt16)
 	{
 		if (m_bColorTableExist)
 		{
-			Trans16To8(data2, 256, 256, 3, &m_ColorTable);
+			Trans16To8(data, 256, 256, 3, &m_ColorTable);
 		}
 		else
 		{
-			Trans16To8(data2, 256, 256, 3);
+			Trans16To8(data, 256, 256, 3);
 		}
 		if (nBandCount == 4)
 		{
-			BGR2RGB(data2, 256, 256, nBandCount);
+			BGR2RGB(data, 256, 256, nBandCount);
 		}
 	}
 	else if (dT == GDT_Byte)
 	{
-		if (m_bColorTableExist)
-		{
-			Trans8To8(data2, 256, 256, 3, &m_ColorTable);
-		}
-		if (nBandCount == 4)
-		{
-			BGR2RGB(data2, 256, 256, nBandCount); //RGBA
-		}
+// 		if (m_bColorTableExist)
+// 		{
+// 			Trans8To8(data2, 256, 256, 3, &m_ColorTable);
+// 		}
+// 		if (nBandCount == 4)
+// 		{
+// 			BGR2RGB(data2, 256, 256, nBandCount); //RGBA
+// 		}
 	}
 	GDALClose(pDataSet);
 }

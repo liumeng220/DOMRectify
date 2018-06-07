@@ -165,7 +165,7 @@ public:
 
 	int GetTriangleVBO();
 
-	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE**data);
+	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data);
 public:
 	string                              m_Imgname;
 	string							    m_BonName;

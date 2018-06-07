@@ -45,7 +45,7 @@ public:
 	ImageReader *m_pReaderRef;
 	DomRectifyPro m_RectifyHander;
 	bool m_bViewPoint;
-	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE** data);
+	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data);
 	void SaveImage(CString strImagePath, int nCols, int nRows, int nBands, BYTE*data, const char*pszFormat);
 
 	// Ьиад

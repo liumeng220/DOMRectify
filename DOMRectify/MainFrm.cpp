@@ -85,6 +85,8 @@ CMainFrame::CMainFrame()
 	ClearData();
 
 	m_bViewPoint = true;
+
+
 }
 
 
@@ -93,11 +95,11 @@ CMainFrame::~CMainFrame()
 	ClearData();
 }
 
-void CMainFrame::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE** data)
+void CMainFrame::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data)
 {
 	OrthoImage *pImg = new OrthoImage;
 	pImg->LoadDOM(strImagePath.GetBuffer(),"");
-	pImg->ReadImage(strImagePath, stcol, strow, edcol, edcol, memWidth, memHeight, data);
+	pImg->ReadImage(strImagePath, stcol, strow, edcol, edrow, memWidth, memHeight, data);
 }
 void CMainFrame::SaveImage(CString strImagePath, int nCols, int nRows, int nBands, BYTE*data, const char*pszFormat)
 {
@@ -475,7 +477,8 @@ void CMainFrame::AutoRectifyOnTIme()
 
 	//读取影像灰度-后续换算成从纹理获取
 	BYTE *data=new BYTE[1],*data2=new BYTE[1];
-	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, rectView.Width(), rectView.Height(), &data);
+	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, rectView.Width(), rectView.Height(),data);
+	SaveImage(m_strPrjPath + ".tif", rectView.Width(), rectView.Height(), 4, data, "GTiff");
 	/***************************************/
 	//此处调用实时纠正相关函数
 	m_RectifyHander.addmatchpt(&cpt);
@@ -674,6 +677,7 @@ void CMainFrame::OnFileOpen()
 		OpenPrj();
 		m_strPrjPath = FilePathName;
 	}
+
 }
 void CMainFrame::NewPrj(CDlgPrjNew2 &dlg)
 {

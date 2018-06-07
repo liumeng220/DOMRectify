@@ -744,7 +744,6 @@ void CDOMRectifyView::OnLButtonUp(UINT nFlags, CPoint point)
 
  }
 
-
  void CDOMRectifyView::OnRButtonDown(UINT nFlags, CPoint point)
  {
 	 // TODO: Add your message handler code here and/or call default
@@ -752,7 +751,7 @@ void CDOMRectifyView::OnLButtonUp(UINT nFlags, CPoint point)
 	 {
 		 m_bStartWrapper = true;
 	 }
-	 if (theApp.m_bPtDom||theApp.m_bPtRef)
+	 if (theApp.m_bPtDom || theApp.m_bPtRef)
 	 {
 		 ::SendMessage(GetMainFramHand()->m_hWnd, WM_ADD_MATCHPOINT, 1, 1);
 		 theApp.m_bPtRef = false;

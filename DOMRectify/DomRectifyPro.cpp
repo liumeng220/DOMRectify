@@ -185,26 +185,29 @@ void DomRectifyPro::updatetriangulateio()
 	
 }
 
-void DomRectifyPro::addmatchpt(CorrespondPt * pt)
+void DomRectifyPro::addmatchpt(CorrespondPt * pt, bool borgphoto)
 {
 	reprojectionToLeftCoordinate(m_matchImage, m_prefImages, m_nrefImages, pt, 1);
-
-	//反投影回去
-	double lx[4], ly[4], rx[3], ry[3], t[3], a[6];
-	int j3, j, k; double tx, ty;
-	int tinidx = GetPtWithinTin(pt->lx, pt->ly, m_tri, m_matchptlist.data());
-	if (tinidx != -1) {
-		j3 = tinidx * 3;
-		for (k = 0; k < 3; k++) {
-			j = m_tri.triList[j3 + k];
-			lx[k] = pt[j].lx; ly[k] = pt[j].ly;
-			rx[k] = pt[j].rx; ry[k] = pt[j].ry;
+	if (borgphoto)m_addpt.push_back(*pt);
+	else {
+		//反投影回去
+		double lx[4], ly[4], rx[3], ry[3], t[3], a[6];
+		int j3, j, k; double tx, ty;
+		CorrespondPt * pmatchlist = m_matchptlist.data();
+		int tinidx = GetPtWithinTin(pt->lx, pt->ly, m_tri, pmatchlist);
+		if (tinidx != -1) {
+			j3 = tinidx * 3;
+			for (k = 0; k < 3; k++) {
+				j = m_tri.triList[j3 + k];
+				lx[k] = pmatchlist[j].lx; ly[k] = pmatchlist[j].ly;
+				rx[k] = pmatchlist[j].rx; ry[k] = pmatchlist[j].ry;
+			}
+			CalcAffine(rx, ry, lx, ly, a);
+			tx = a[0] + pt->lx*a[1] + pt->ly*a[2];
+			ty = a[3] + pt->lx*a[4] + pt->ly*a[5];
+			pt->lx = tx; pt->ly = ty;
+			m_addpt.push_back(*pt);
 		}
-		CalcAffine(rx, ry, lx, ly, a);
-		tx = a[0] + pt->lx*a[1] + pt->ly*a[2];
-		ty = a[3] + pt->lx*a[4] + pt->ly*a[5];
-		pt->lx = tx; pt->ly = ty;
-		m_addpt.push_back(*pt);
 	}
 
 }
@@ -469,6 +472,7 @@ int DomRectifyPro::GetTinInRect_right(double xl, double yb, double xr, double yt
 int DomRectifyPro::GetPtWithinTin(double x, double y, triangulateio & tri, CorrespondPt *pt)
 {
 	int *pTinIdx = NULL;
+	int findidx = -1;
 	int nTin = GetTinInRect(x-10, y -10, x + 10, y + 10, tri, &pTinIdx);
 
 	double rx[3], ry[3], t[3]; int j3;
@@ -490,12 +494,11 @@ int DomRectifyPro::GetPtWithinTin(double x, double y, triangulateio & tri, Corre
 			t[j] = x0[j] * y0[j+1] - x0[j+1] * y0[j];
 		}
 		if (t[0] * t[1] >= zero && t[0] * t[2] >= zero) {
-			if (pTinIdx) { delete[]pTinIdx; pTinIdx = NULL; }
-			return pTinIdx[i];
+			findidx = pTinIdx[i];
 		}
 	}
 	if (pTinIdx) { delete[]pTinIdx; pTinIdx = NULL; }
-	return -1;
+	return findidx;
 }
 
 bool DomRectifyPro::IsPointInTin(double px, double py, triangulateio * tin, int * pTinIdx, int nTin)

@@ -482,7 +482,7 @@ void CMainFrame::AutoRectifyOnTIme()
 	/***************************************/
 	//此处调用实时纠正相关函数
 	m_RectifyHander.addmatchpt(&cpt);
-	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, rectView.Height(), rectView.Width(), data, 1, &data2);   //lkb这个函数有问题？？
+	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, rectView.Height(), rectView.Width(), data, &data2);   //lkb这个函数有问题？？
 	/**************************************/
 	//此处替换纹理
 	m_pReaderStere->UpdateCurTex(data, stCol, stRow, edCol, edRow, fZoomRate);

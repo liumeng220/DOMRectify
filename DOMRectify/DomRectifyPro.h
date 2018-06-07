@@ -62,7 +62,7 @@ public:
 	//影像块纠正
 	template <typename T>
 	//利用原始影像纠正
-	void smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, T* plindata, int nPxlBytes, T** poutdata, int nBkgrdClr = 0);
+	void smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, T* plindata, T** poutdata, int nBkgrdClr = 0);
 
 public:
 	string m_strdom;
@@ -82,9 +82,20 @@ public:
 };
 
 template<typename T>
-inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, T * plindata, int nPxlBytes, T ** poutdata, int nBkgrdClr)
+inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom, int lrows, int lcols, T * plindata,T ** poutdata, int nBkgrdClr)
 {
-
+	int nPxlBytes = m_matchImage->GetBands();
+	//保存
+	CIdpmImage inphoto;
+	inphoto.Open("C:\\Users\\Dabo\\Desktop\\indata.tif", CIdpmImage::modeCreate);
+	inphoto.SetBands(nPxlBytes); inphoto.SetRows(lrows); inphoto.SetCols(lcols);
+	double *at = m_matchImage->GetGeoTransform();
+	inphoto.SetGeoTransform(at); 
+	for (int i = 0; i < lrows; i++){
+		inphoto.Write(plindata + i * lcols * nPxlBytes, i);
+	}
+	inphoto.Close();
+	
 	updatetriangulateio();
 
 	int nrange = 254;
@@ -184,16 +195,12 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 	*poutdata = pdata;
 
 	//保存
-	//CIdpmImage inphoto, outphoto;
-	//inphoto.Open("C:\\Users\\Dabo\\Desktop\\indata.tif", CIdpmImage::modeCreate);
-	//outphoto.Open("C:\\Users\\Dabo\\Desktop\\oudata.tif", CIdpmImage::modeCreate);
-	//inphoto.SetBands(nPxlBytes); inphoto.SetRows(lrows); inphoto.SetCols(lcols);
-	//outphoto.SetBands(nPxlBytes); outphoto.SetRows(lrows); outphoto.SetCols(lcols);
-	//double *at = m_matchImage->GetGeoTransform();
-	//inphoto.SetGeoTransform(at); outphoto.SetGeoTransform(at);
-	//for (int i = 0; i < lrows; i++){
-	//	inphoto.Write(plindata + i * lcols * nPxlBytes, i);
-	//	outphoto.Write(pdata + i * lcols * nPxlBytes, i);
-	//}
-	//inphoto.Close(); outphoto.Close();
+	CIdpmImage outphoto;
+	outphoto.Open("C:\\Users\\Dabo\\Desktop\\oudata.tif", CIdpmImage::modeCreate);
+	outphoto.SetBands(nPxlBytes); outphoto.SetRows(lrows); outphoto.SetCols(lcols);
+	outphoto.SetGeoTransform(at);
+	for (int i = 0; i < lrows; i++){
+		outphoto.Write(pdata + i * lcols * nPxlBytes, i);
+	}
+	outphoto.Close();
 }

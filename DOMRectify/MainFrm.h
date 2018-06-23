@@ -44,7 +44,9 @@ public:
 	ImageReader *m_pReaderStere;
 	ImageReader *m_pReaderRef;
 	DomRectifyPro m_RectifyHander;
+	bool m_bAutoSelectRef;
 	bool m_bViewPoint;
+	bool m_bAutoRectify;
 	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data);
 	void SaveImage(CString strImagePath, int nCols, int nRows, int nBands, BYTE*data, const char*pszFormat);
 
@@ -69,7 +71,6 @@ public:
 	void ClearStereReader();
 	void CloseStereDoc();
 	void Switch2StereDoc();
-	bool m_bAutoSelectRef;
 	CString m_strPrjPath;
 	CDOMRectifyPrj m_Project;;
 	CDOMRectifyView* m_pMainView;
@@ -153,6 +154,8 @@ public:
 	afx_msg void OnUpdateComboSelectRef(CCmdUI *pCmdUI);
 	afx_msg void OnCheckViewPoint();
 	afx_msg void OnUpdateCheckViewPoint(CCmdUI *pCmdUI);
+	afx_msg void OnCheckAutoRectifyAfterMatch();
+	afx_msg void OnUpdateCheckAutoRectifyAfterMatch(CCmdUI *pCmdUI);
 };
 
 

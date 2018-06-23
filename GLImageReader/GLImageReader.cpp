@@ -341,18 +341,18 @@ void ImageReader::Work()
 	}
 }
 
-void ImageReader::UpdateCurTex(BYTE * data, int stCol, int stRow, int edCol, int edRow, double zoomRate)
+void ImageReader::UpdateCurTex(BYTE * data, int stCol, int stRow, int edCol, int edRow, double zoomRate,int nDataX, int nDataY, int nBandCount)
 {
-////	Stop();
-//	m_bStop = false;
-// 	//if (m_bStop != true)
-// 	//{
-//		if(m_Images.size()>0)
-//		{
-//			m_Images[0]->UpdateCurrentTexData(m_pRGBPool, false, &m_bStop, data, stCol, stRow, edCol, edRow, zoomRate);
-//		}
-// 		m_bStop = true;
-// 	//}
+//	Stop();
+	m_bStop = false;
+	//if (m_bStop != true)
+	//{
+	if (m_Images.size() > 0)
+	{
+		m_Images[0]->UpdateCurrentTexData(m_pRGBPool, false, &m_bStop, data, stCol, stRow, edCol, edRow, zoomRate, nDataX, nDataY, nBandCount);
+	}
+	m_bStop = true;
+	//}
 }
 
 void        ImageReader::Stop()

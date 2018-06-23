@@ -544,112 +544,71 @@ void   Image::LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool
 	if (data) delete[]data;
 }
 
-void Image::UpdateCurrentTexData(GLTexturePool * pTexturePool, bool bForce, bool * bStop, BYTE * data, int stCol, int stRow, int edCol, int edRow, double zoomRate)
+void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY, int nBandCount)
 {
 	int iCurTexCount = m_CurTiles.size();
-	GDALDataset* pDataSet = (GDALDataset *)GDALOpen(m_DomName.c_str(), GA_ReadOnly);
-	int bandsmap[4] = { 1, 2, 3, 4 };
-	if (!pDataSet)
-	{
-		return;
-	}
-	int nPixelSize = 0;
-	GDALDataType dT = pDataSet->GetRasterBand(1)->GetRasterDataType();
-	if (dT == GDT_Byte)
-	{
-		nPixelSize = 1;
-	}
-	else if (dT == GDT_UInt16)
-	{
-		nPixelSize = 2;
-	}
-	int nCols = pDataSet->GetRasterXSize();
-	int nRows = pDataSet->GetRasterYSize();
-	int nBandCount = pDataSet->GetRasterCount();
-
+	
 	int datalen = 256 * 256 * 4 * 2;
-	data = new BYTE[datalen];
-	int nPixelCount = 256 * 256 * nBandCount;
+	BYTE *data2 = new BYTE[datalen];
 
 	for (int i = 0; i < iCurTexCount; ++i)
 	{
-		memset(data, 0, datalen);
+		memset(data2, 255, datalen);
 		if (*bStop)
 		{
-			GDALClose(pDataSet); return;
+			return;
 		}
 		ImageTile* pCurTile = m_CurTiles[i];
-		if (pCurTile->m_pTexture != NULL && bForce == false)
-		{
-			continue;
-		}
-		pCurTile->m_pTexture = pTexturePool->GetTexture();
 		int iZoom = 1 << pCurTile->m_PyrLevel;
-
 		int nRealWid = 0, nRealHei = 0;
-		if (pCurTile->m_ImgRange.MinX + G_TileWidth * iZoom <= nCols)
+		if (pCurTile->m_ImgRange.MinX + G_TileWidth * iZoom <= edCol)
 		{
 			nRealWid = G_TileWidth * iZoom;
 		}
 		else
 		{
-			nRealWid = nCols - pCurTile->m_ImgRange.MinX;
+			nRealWid = edCol - pCurTile->m_ImgRange.MinX;
 		}
 
-		if (pCurTile->m_ImgRange.MinY + G_TileWidth * iZoom <= nRows)
+		if (pCurTile->m_ImgRange.MinY + G_TileWidth * iZoom <= edRow)
 		{
 			nRealHei = G_TileWidth * iZoom;
 		}
 		else
 		{
-			nRealHei = nRows - pCurTile->m_ImgRange.MinY;
+			nRealHei = edRow - pCurTile->m_ImgRange.MinY;
 		}
-		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * G_TileWidth * nPixelSize, nPixelSize);
+// 
+// 		if (pCurTile->m_ImgRange.MinX > edCol || pCurTile->m_ImgRange.MinY > edRow || pCurTile->m_ImgRange.MaxX < stCol || pCurTile->m_ImgRange.MaxY < stRow)
+// 		{
+// 			continue;
+// 		}
 
-		if (dT == GDT_UInt16)
-		{
-			if (m_bColorTableExist)
-			{
-				Trans16To8(data, 256, 256, nBandCount, &m_ColorTable);
-			}
-			else
-			{
-				Trans16To8(data, 256, 256, nBandCount);
-			}
-			// 			if (nBandCount == 4)
-			// 			{
-			// 				BGR2RGB(data, 256, 256, nBandCount);
-			// 			}
-		}
-		else if (dT == GDT_Byte)
-		{
-			if (m_bColorTableExist)
-			{
-				Trans8To8(data, 256, 256, nBandCount, &m_ColorTable);
-			}
-			if (nBandCount == 4)
-			{
-				BGR2RGB(data, 256, 256, nBandCount); //RGBA
-			}
-		}
+		pCurTile->m_pTexture = pTexturePool->GetTexture();
 
-		if (err == CE_Failure)
-		{
-			GDALClose(pDataSet);
-			return;
-		}
+	
+		int stImgX = max(stCol*1.0, pCurTile->m_ImgRange.MinX);
+		int stImgY = max(stRow*1.0, pCurTile->m_ImgRange.MinY);
+		int edImgX = min(edCol*1.0, pCurTile->m_ImgRange.MaxX);
+		int edImgY = min(edRow*1.0, pCurTile->m_ImgRange.MaxY);
+
+		int nImgX = nRealWid;
+		int nImgY = nRealHei;
+		int nMemX = nRealWid / iZoom;
+		int nMemY = nRealHei / iZoom;
+
 		/*-----在前一个版本中将wglMakeCurrent放在OrthoSet之中，这样会照成问题：前一个线程尚未结束实，下一个线程可能已经开始，这样造成RC正在使用无法更改-----*/
 		/*-----向纹理传输数据-----*/
 		MultiThreadWGLMakeCurrent(pTexturePool->GetDC(), pTexturePool->GetRC());
 		glBindTexture(GL_TEXTURE_2D, pCurTile->m_pTexture->tex);
 		if (nBandCount == 4)
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, G_TileWidth, G_TileWidth, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, G_TileWidth, G_TileWidth, 0, GL_RGBA, GL_UNSIGNED_BYTE, data2);
 		}
 		else if (m_BandCount == 3)
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, G_TileWidth, G_TileWidth, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, G_TileWidth, G_TileWidth, 0, GL_RGB, GL_UNSIGNED_BYTE, data2);
 		else
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, G_TileWidth, G_TileWidth, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, G_TileWidth, G_TileWidth, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data2);
 		/*-----向VBO传输数据-----*/
 		OGREnvelope	m_TileRange;
 		m_TileRange.MinX = m_GroundRange.MinX + pCurTile->m_ImgRange.MinX * m_GSD;
@@ -666,8 +625,7 @@ void Image::UpdateCurrentTexData(GLTexturePool * pTexturePool, bool bForce, bool
 		glBufferData(GL_ARRAY_BUFFER, 96, vertexcoord, GL_DYNAMIC_DRAW);
 		MultiThreadWGLMakeCurrent(NULL, NULL);
 	}
-	GDALClose(pDataSet);
-	if (data) delete[]data;
+	if (data2) delete[]data2;
 }
 
 

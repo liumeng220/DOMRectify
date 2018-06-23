@@ -61,6 +61,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWndEx)
 
 	ON_COMMAND(ID_CHECK_VIEW_POINT, &CMainFrame::OnCheckViewPoint)
 	ON_UPDATE_COMMAND_UI(ID_CHECK_VIEW_POINT, &CMainFrame::OnUpdateCheckViewPoint)
+	ON_COMMAND(ID_CHECK_AUTO_RECTIFY_AFTER_MATCH, &CMainFrame::OnCheckAutoRectifyAfterMatch)
+	ON_UPDATE_COMMAND_UI(ID_CHECK_AUTO_RECTIFY_AFTER_MATCH, &CMainFrame::OnUpdateCheckAutoRectifyAfterMatch)
 END_MESSAGE_MAP()
 
 // CMainFrame 构造/析构
@@ -85,7 +87,7 @@ CMainFrame::CMainFrame()
 	ClearData();
 
 	m_bViewPoint = true;
-
+	m_bAutoRectify = true;
 
 }
 
@@ -100,6 +102,8 @@ void CMainFrame::ReadImage(CString strImagePath, int stcol, int strow, int edcol
 	OrthoImage *pImg = new OrthoImage;
 	pImg->LoadDOM(strImagePath.GetBuffer(),"");
 	pImg->ReadImage(strImagePath, stcol, strow, edcol, edrow, memWidth, memHeight, data);
+	if (pImg)
+		pImg->Clear();
 }
 void CMainFrame::SaveImage(CString strImagePath, int nCols, int nRows, int nBands, BYTE*data, const char*pszFormat)
 {
@@ -432,14 +436,12 @@ void CMainFrame::AutoMatch(CString strPath)
 	}
 	fclose(pw);
 
-	//纠正整张图像
-	CString strRectifyFolder = FunGetFileFolder(m_strPrjPath) + "\\Rectify\\"; FunCreateDir4Path(strRectifyFolder, true);
-	CString strRectifyImage = m_Project.GetCurRecDomPath();
+	if(m_bAutoRectify)		//纠正整张图像
+	{
+		m_RectifyHander.rectifyDomImages();
 
-	m_RectifyHander.LoadData(m_Project.GetCurDomPath(), m_Project.GetCurMatchPath(), m_Project.GetRefPath(), strRectifyImage);
-	m_RectifyHander.rectifyDomImages();
-
-	::SendMessage(GetMainFramHand()->m_hWnd, WM_UPDATE_ORTHORIMAGE, 0, 1);
+		::SendMessage(GetMainFramHand()->m_hWnd, WM_UPDATE_ORTHORIMAGE, 0, 1);
+	}
 	::SendMessage(GetMainFramHand()->m_hWnd, WM_UPDATE_MATCHVIEW, 0, 1);
 
 }
@@ -470,22 +472,35 @@ void CMainFrame::AutoRectifyOnTIme()
 	CRect rectView; m_pLView->GetClientRect(rectView);
 	m_pLView->Client2Ground(0, 0, left, top);
 	m_pLView->Client2Ground(rectView.right, rectView.bottom, right, bottom);
-	stCol = (left - enveDom2.MinX) / GsdDom;
-	stRow = (bottom - enveDom2.MinY) / GsdDom;
-	edCol = (right - enveDom2.MinX) / GsdDom;
-	edRow = (top - enveDom2.MinY) / GsdDom;
+// 	stCol = (left - enveDom2.MinX) / GsdDom;
+// 	stRow = DomImg->GetRows() - (top - enveDom2.MinY) / GsdDom;
+// 	edCol = (right - enveDom2.MinX) / GsdDom;
+// 	edRow = DomImg->GetRows() - (bottom - enveDom2.MinY) / GsdDom;
+ 	stCol = max((left - enveDom2.MinX) / GsdDom, 0.);
+ 	stRow = max(DomImg->GetRows() - (top - enveDom2.MinY) / GsdDom, 0.);
+ 	edCol = min((right - enveDom2.MinX) / GsdDom, DomImg->GetCols()*1. - 1);
+ 	edRow = min(DomImg->GetRows() - (bottom - enveDom2.MinY) / GsdDom, DomImg->GetRows()*1. - 1);
+
+	int cl, ct, cr, cb;
+	m_pLView->Ground2Client(stCol*GsdDom + enveDom2.MinX, stRow*GsdDom + enveDom2.MinY, cl, ct);
+	m_pLView->Ground2Client(edCol*GsdDom + enveDom2.MinX, edRow*GsdDom + enveDom2.MinY, cr, cb);
+	int width = fabs(cl - cr*1.) + 1;
+	int height = fabs(ct - cb*1.) + 1;
 
 	//读取影像灰度-后续换算成从纹理获取
 	BYTE *data=new BYTE[1],*data2=new BYTE[1];
-	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, rectView.Width(), rectView.Height(),data);
-	SaveImage(m_strPrjPath + ".tif", rectView.Width(), rectView.Height(), 4, data, "GTiff");
+	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, width, height, data);
+	SaveImage(m_strPrjPath + ".tif", width, height, DomImg->GetBandCount(), data, "GTiff");
+	return;
+
 	/***************************************/
 	//此处调用实时纠正相关函数
 	m_RectifyHander.addmatchpt(&cpt);
-	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, rectView.Height(), rectView.Width(), data, &data2);   //lkb这个函数有问题？？
+	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, width, height, data, &data2);   //lkb这个函数有问题？？
+//	SaveImage(m_strPrjPath + ".tif.tif", rectView.Width(), rectView.Height(), 4, data2, "GTiff");
 	/**************************************/
 	//此处替换纹理
-	m_pReaderStere->UpdateCurTex(data, stCol, stRow, edCol, edRow, fZoomRate);
+	m_pReaderStere->UpdateCurTex(data, stCol, stRow, edCol, edRow, fZoomRate, width, height, DomImg->GetBandCount());
 //	m_pLView->PostMessage(WM_PAINT);
 }
 
@@ -870,21 +885,24 @@ void CMainFrame::OpenMatchView()
 	MultiThreadWGLMakeCurrent(pChildFrame->m_hDC, pChildFrame->m_hRC);
 
 
-	string strDom, strRef;
+	string stOriDom, strRef;
 	switch (m_eOpenDOMType)
 	{
 	case PAN:
-		strDom = m_Project.GetDomGroup()[m_nImgIdxInMatchView].strPanPath;
+		stOriDom = m_Project.GetDomGroup()[m_nImgIdxInMatchView].strPanPath;
 		break;
 	case MUX:
-		strDom = m_Project.GetDomGroup()[m_nImgIdxInMatchView].strMuxPath;
+		stOriDom = m_Project.GetDomGroup()[m_nImgIdxInMatchView].strMuxPath;
 		break;
 	case FUS:
-		strDom = m_Project.GetDomGroup()[m_nImgIdxInMatchView].strFusPath;
+		stOriDom = m_Project.GetDomGroup()[m_nImgIdxInMatchView].strFusPath;
 		break;
 	default:
 		break;
 	}
+	string strDom = FunGetFileFolder(m_strPrjPath) + "\\Rectify\\" + FunGetFileName(stOriDom.c_str(), false) + "_rec.tif";
+	if (!PathFileExists(strDom.c_str())) strDom = stOriDom;
+
 	OrthoImage* pImgDom = new OrthoImage;
 	pImgDom->SetOrthoID(1);
 	CString strShp = FunGetFileFolder(strDom.c_str()) + "\\" + FunGetFileName(strDom.c_str(), false) + ".shp";
@@ -940,6 +958,9 @@ void CMainFrame::OpenMatchView()
 	CMFCRibbonComboBox *pCom = DYNAMIC_DOWNCAST(CMFCRibbonComboBox, m_wndRibbonBar.FindByID(ID_COMBO_SELECT_REF));
 	if (!pCom) return;
 	pCom->SelectItem(theApp.m_nRefIdx);
+
+	//更新当前rectify类
+	m_RectifyHander.LoadData(m_Project.GetCurDomPath(), m_Project.GetCurMatchPath(), m_Project.GetRefPath(), m_Project.GetCurRecDomPath());
 }
 
 eDOMTYPE CMainFrame::HighlightMatchViewImage()
@@ -1368,4 +1389,26 @@ void CMainFrame::OnUpdateCheckViewPoint(CCmdUI *pCmdUI)
 // 		return;
 // 	}
 	pCmdUI->SetCheck(m_bViewPoint);
+}
+
+
+void CMainFrame::OnCheckAutoRectifyAfterMatch()
+{
+	// TODO: Add your command handler code here
+	m_bAutoRectify = !m_bAutoRectify;
+}
+
+
+void CMainFrame::OnUpdateCheckAutoRectifyAfterMatch(CCmdUI *pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	if (m_nImgIdxInMatchView < 0)
+	{
+		pCmdUI->Enable(FALSE);
+	}
+	else
+	{
+		pCmdUI->Enable(TRUE);
+		pCmdUI->SetCheck(m_bAutoRectify);
+	}
 }

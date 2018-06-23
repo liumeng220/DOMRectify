@@ -258,7 +258,10 @@ void ImageView::Client2Ground(int screenx, int screeny, double& groundx, double&
 
 void ImageView::Ground2Client(double groundx, double groundy, int& screenx, int& screeny)
 {
-
+	CRect rt;
+	GetClientRect(&rt);
+	screenx = (groundx - m_GroundRange.MinX)*(double)rt.Width() / (m_GroundRange.MaxX - m_GroundRange.MinX);
+	screeny = rt.Height() - (groundy - m_GroundRange.MinY)*(double)rt.Height() / (m_GroundRange.MaxY - m_GroundRange.MinY);
 }
 
 void ImageView::OnLButtonDown(UINT nFlags, CPoint point)

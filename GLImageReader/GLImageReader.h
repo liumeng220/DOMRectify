@@ -55,7 +55,7 @@ private:
 	void			Start();
 public:
 	void			Work();
-	void            UpdateCurTex(BYTE*data, int stCol, int stRow, int edCol, int edRow, double zoomRate);
+	void            UpdateCurTex(BYTE*data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY, int nBandCount);
 
 private:
 	std::vector<ImageTile*>		   m_CurTiles;

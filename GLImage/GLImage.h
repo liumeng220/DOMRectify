@@ -76,7 +76,7 @@ public:
 
 	void LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool* bStop);
 
-	void UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate);
+	void UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY,int nBandCount);
 
 	OGREnvelope GetGroundRange() { return m_GroundRange; };
 

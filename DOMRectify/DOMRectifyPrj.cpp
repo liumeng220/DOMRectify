@@ -392,6 +392,8 @@ void CDOMRectifyPrj::SavePoint(ImageReader * pReader)
 			m_vecPtDom[i].nPtIdx, lfDomX, lfDomY, lfRefX, lfRefY, m_vecPtRef[i].nRefIdx);
 	}
 	fclose(pf); pf = NULL;
+	DomImg->Clear();
+	if (DomImg) delete DomImg;
 }
 
 void CDOMRectifyPrj::SelPoint(OGREnvelope enve)
@@ -534,6 +536,7 @@ stuImgGroup CDOMRectifyPrj::GetDomGroup(int idx)
 		return m_vecDomGroup[idx];
 	}
 }
+
 
 vector<stuImgGroup> CDOMRectifyPrj::GetDomGroup()
 {

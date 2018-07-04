@@ -55,7 +55,7 @@ public:
 	BOOL CreateDockingWindows();
 	void AddToMatchList();
 	void AutoMatch(CString strPath);
-	void AutoRectifyOnTIme();
+	void AutoRectifyOnTIme(bool bAddPoint);
 
 	void NewPrj(CDlgPrjNew2 &dlg);
 	void OpenPrj();
@@ -82,7 +82,7 @@ public:
 	GLuint m_RPointsVBOAdd;
 	GLuint m_ImgGridsVBO;
 	map<int, OGREnvelope> m_ImgGridEnves;
-
+	vector<stuMatchPoint> m_vecSelPoints;
 	eDOMTYPE m_eOpenDOMType;
 	int m_nImgIdxInMatchView;
 // ²Ù×÷

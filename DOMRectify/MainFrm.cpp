@@ -165,6 +165,7 @@ void CMainFrame::ClearData()
 	ClearAllReader();
 	m_strPrjPath.Empty();
 	m_bAutoSelectRef = true;
+	vector<stuMatchPoint>().swap(m_vecSelPoints);
 	// 	if (glIsBuffer(m_ImgGridsVBO))   glDeleteBuffers(1, &m_ImgGridsVBO);
 	// 	if (glIsBuffer(m_LPointsVBO))    glDeleteBuffers(1, &m_LPointsVBO);
 	// 	if (glIsBuffer(m_RPointsVBO))    glDeleteBuffers(1, &m_RPointsVBO);
@@ -438,6 +439,7 @@ void CMainFrame::AutoMatch(CString strPath)
 
 	if(m_bAutoRectify)		//纠正整张图像
 	{
+		m_RectifyHander.LoadData(m_Project.GetCurDomPath(), m_Project.GetCurMatchPath(), m_Project.GetRefPath(), m_Project.GetCurRecDomPath());
 		m_RectifyHander.rectifyDomImages();
 
 		::SendMessage(GetMainFramHand()->m_hWnd, WM_UPDATE_ORTHORIMAGE, 0, 1);
@@ -446,7 +448,7 @@ void CMainFrame::AutoMatch(CString strPath)
 
 }
 
-void CMainFrame::AutoRectifyOnTIme()
+void CMainFrame::AutoRectifyOnTIme(bool bAddPoint)
 {
 	OrthoImage *DomImg = new OrthoImage;
 	DomImg->LoadDOM(m_Project.GetCurDomPath().GetBuffer(), "");
@@ -457,14 +459,7 @@ void CMainFrame::AutoRectifyOnTIme()
 	OGREnvelope enveRef = m_pReaderRef->GetImage(theApp.m_nRefIdx)->GetGroundRange();
 	double GsdRef = m_pReaderRef->GetImage(theApp.m_nRefIdx)->GetGSD();
 
-	tagCorrespondPt cpt;
-	sprintf(cpt.ID, "%d", m_Project.GetDomPoints()[m_Project.GetAllPointNum() - 1].nPtIdx);
 
-	cpt.lx = (theApp.m_ptDom.getX() - enveDom2.MinX) / GsdDom;  //像点坐标换算到像平面坐标系
-	cpt.ly = (theApp.m_ptDom.getY() - enveDom2.MinY) / GsdDom;
-	cpt.rx = (theApp.m_ptRef.getX() - enveRef.MinX) / GsdRef;
-	cpt.ry = (theApp.m_ptRef.getY() - enveRef.MinY) / GsdRef;;
-	cpt.nrefid = theApp.m_nRefIdx;
 
 	float fZoomRate = m_pReaderStere->GetCurZoomRate();
 	int stCol, stRow, edCol, edRow; double left, top, right, bottom;
@@ -481,27 +476,60 @@ void CMainFrame::AutoRectifyOnTIme()
  	edCol = min((right - enveDom2.MinX) / GsdDom, DomImg->GetCols()*1. - 1);
  	edRow = min(DomImg->GetRows() - (bottom - enveDom2.MinY) / GsdDom, DomImg->GetRows()*1. - 1);
 
-	int cl, ct, cr, cb;
-	m_pLView->Ground2Client(stCol*GsdDom + enveDom2.MinX, stRow*GsdDom + enveDom2.MinY, cl, ct);
-	m_pLView->Ground2Client(edCol*GsdDom + enveDom2.MinX, edRow*GsdDom + enveDom2.MinY, cr, cb);
-	int width = fabs(cl - cr*1.) + 1;
-	int height = fabs(ct - cb*1.) + 1;
+// 	int cl, ct, cr, cb;
+// 	m_pLView->Ground2Client(stCol*GsdDom + enveDom2.MinX, stRow*GsdDom + enveDom2.MinY, cl, ct);
+// 	m_pLView->Ground2Client(edCol*GsdDom + enveDom2.MinX, edRow*GsdDom + enveDom2.MinY, cr, cb);
+// 	int width = fabs(cl - cr*1.) + 1;
+// 	int height = fabs(ct - cb*1.) + 1;
 
+	int width = (edCol - stCol + 1) / m_pReaderStere->GetiZoom();
+	int height = (edRow - stRow + 1) / m_pReaderStere->GetiZoom();
 	//读取影像灰度-后续换算成从纹理获取
 	BYTE *data=new BYTE[1],*data2=new BYTE[1];
 	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, width, height, data);
-	SaveImage(m_strPrjPath + ".tif", width, height, DomImg->GetBandCount(), data, "GTiff");
-	return;
+ //	SaveImage(m_strPrjPath + ".tif", width, height, DomImg->GetBandCount(), data, "GTiff");
+// 	return;
 
 	/***************************************/
 	//此处调用实时纠正相关函数
-	m_RectifyHander.addmatchpt(&cpt);
+	if(bAddPoint)
+	{
+		tagCorrespondPt cpt;
+		sprintf(cpt.ID, "%d", m_Project.GetDomPoints()[m_Project.GetAllPointNum() - 1].nPtIdx);
+		cpt.lx = (theApp.m_ptDom.getX() - enveDom2.MinX) / GsdDom;  //像点坐标换算到像平面坐标系
+		cpt.ly = (theApp.m_ptDom.getY() - enveDom2.MinY) / GsdDom;
+		cpt.rx = (theApp.m_ptRef.getX() - enveRef.MinX) / GsdRef;
+		cpt.ry = (theApp.m_ptRef.getY() - enveRef.MinY) / GsdRef;;
+		cpt.nrefid = theApp.m_nRefIdx;
+		m_RectifyHander.addmatchpt(&cpt);
+	}
+	else
+	{
+		if (m_vecSelPoints.size() == 0)
+		{
+			if (data) delete[]data;
+			if (data2) delete[]data2;
+			return;
+		}
+		vector<char*> vecIdSel(m_vecSelPoints.size());
+		for (int i = 0; i<vecIdSel.size(); i++)
+		{
+			vecIdSel[i] = new char[100];
+			memset(vecIdSel[i], 0, 100);
+			sprintf(vecIdSel[i], "%d", m_vecSelPoints[i].nPtIdx);
+		}
+		m_RectifyHander.deletematchpts(vecIdSel);
+		vector<stuMatchPoint>().swap(m_vecSelPoints);
+		vector<char*>().swap(vecIdSel);
+	}
 	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, width, height, data, &data2);   //lkb这个函数有问题？？
-//	SaveImage(m_strPrjPath + ".tif.tif", rectView.Width(), rectView.Height(), 4, data2, "GTiff");
+//	SaveImage(m_strPrjPath + ".tif.tif", width, height, 4, data2, "GTiff");
 	/**************************************/
 	//此处替换纹理
-	m_pReaderStere->UpdateCurTex(data, stCol, stRow, edCol, edRow, fZoomRate, width, height, DomImg->GetBandCount());
-//	m_pLView->PostMessage(WM_PAINT);
+//	data2 = new BYTE[width*height * 4]; memset(data2, 0, width*height * 4);
+	m_pReaderStere->UpdateCurTex(data2, stCol, stRow, edCol, edRow, fZoomRate, width, height, DomImg->GetBandCount());
+	if (data) delete[]data;
+	if (data2) delete[]data2;
 }
 
 void CMainFrame::SetDockingWindowIcons(BOOL bHiColorIcons)
@@ -1248,7 +1276,7 @@ LRESULT CMainFrame::OnAddMatchPoint(WPARAM wPara, LPARAM lPara)
 //		AddPointMapBuffer(m_Project.GetCurPointNum()-1, m_Project.GetDomPoints()[m_Project.GetAllPointNum()-1], m_pReaderStere->GetImage(0)->GetGSD(), m_LPointsVBO);
 //		AddPointMapBuffer(m_Project.GetCurPointNum()-1, m_Project.GetRefPoints()[m_Project.GetAllPointNum()-1], m_pReaderStere->GetImage(1/*+theApp.m_nRefIdx*/)->GetGSD(), m_RPointsVBO);
 
-		AutoRectifyOnTIme();
+		AutoRectifyOnTIme(true);
 	}
 	MultiThreadWGLMakeCurrent(NULL, NULL);
 
@@ -1259,12 +1287,15 @@ LRESULT CMainFrame::OnAddMatchPoint(WPARAM wPara, LPARAM lPara)
 
 LRESULT CMainFrame::OnDelMatchPoint(WPARAM wPara, LPARAM lPara)
 {
+	m_vecSelPoints = m_Project.GetSelDomPoints();
+
 	m_Project.DelPoint();
 	MultiThreadWGLMakeCurrent(GetChildFramHand()->m_hDC, GetChildFramHand()->m_hRC);
 	glDeleteBuffers(1, &m_LPointsVBO);
 	glDeleteBuffers(1, &m_RPointsVBO);
 	GetPointsMapBuffer(m_Project.GetDomPoints(theApp.m_nRefIdx), m_pReaderStere->GetImage(0)->GetGSD(), m_LPointsVBO);
 	GetPointsMapBuffer(m_Project.GetRefPoints(theApp.m_nRefIdx), m_pReaderStere->GetImage(1/*+theApp.m_nRefIdx*/)->GetGSD(), m_RPointsVBO);
+	AutoRectifyOnTIme(false);
 	MultiThreadWGLMakeCurrent(NULL, NULL);
 	m_Project.SavePoint(m_pReaderRef);
 	return 1;

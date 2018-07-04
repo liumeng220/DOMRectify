@@ -469,7 +469,7 @@ void   Image::LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool
 		{
 			nRealHei = nRows - pCurTile->m_ImgRange.MinY;
 		}
-		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * G_TileWidth * nPixelSize, nPixelSize);
+		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * G_TileWidth* nPixelSize, nPixelSize);
 
 		if (dT == GDT_UInt16)
 		{
@@ -506,7 +506,8 @@ void   Image::LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool
 		/*-----在前一个版本中将wglMakeCurrent放在OrthoSet之中，这样会照成问题：前一个线程尚未结束实，下一个线程可能已经开始，这样造成RC正在使用无法更改-----*/
 		/*-----向纹理传输数据-----*/
 		MultiThreadWGLMakeCurrent(pTexturePool->GetDC(), pTexturePool->GetRC());
-		glBindTexture(GL_TEXTURE_2D, pCurTile->m_pTexture->tex);
+		if(pCurTile->m_pTexture)
+			glBindTexture(GL_TEXTURE_2D, pCurTile->m_pTexture->tex);
 		if (nBandCount == 4)
 		{
 			//for (int i = 0; i<256*256; i++)
@@ -544,59 +545,127 @@ void   Image::LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool
 	if (data) delete[]data;
 }
 
-void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY, int nBandCount)
+
+void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY)
 {
 	int iCurTexCount = m_CurTiles.size();
-	
+	GDALDataset* pDataSet = (GDALDataset *)GDALOpen(m_DomName.c_str(), GA_ReadOnly);
+	int bandsmap[4] = { 1, 2, 3, 4 };
+	if (!pDataSet)
+	{
+		return;
+	}
+	int nPixelSize = 0;
+	GDALDataType dT = pDataSet->GetRasterBand(1)->GetRasterDataType();
+	if (dT == GDT_Byte)
+	{
+		nPixelSize = 1;
+	}
+	else if (dT == GDT_UInt16)
+	{
+		nPixelSize = 2;
+	}
+	int nCols = pDataSet->GetRasterXSize();
+	int nRows = pDataSet->GetRasterYSize();
+	int nBandCount = pDataSet->GetRasterCount();
+
 	int datalen = 256 * 256 * 4 * 2;
 	BYTE *data2 = new BYTE[datalen];
+	int nPixelCount = 256 * 256 * nBandCount;
 
 	for (int i = 0; i < iCurTexCount; ++i)
 	{
-		memset(data2, 255, datalen);
 		if (*bStop)
 		{
-			return;
+			GDALClose(pDataSet); return;
 		}
 		ImageTile* pCurTile = m_CurTiles[i];
+// 		if (pCurTile->m_pTexture != NULL && bForce == false)
+// 		{
+// 			continue;
+// 		}
+		pCurTile->m_pTexture = pTexturePool->GetTexture();
 		int iZoom = 1 << pCurTile->m_PyrLevel;
+
 		int nRealWid = 0, nRealHei = 0;
-		if (pCurTile->m_ImgRange.MinX + G_TileWidth * iZoom <= edCol)
+		if (pCurTile->m_ImgRange.MinX + G_TileWidth * iZoom <= nCols)
 		{
 			nRealWid = G_TileWidth * iZoom;
 		}
 		else
 		{
-			nRealWid = edCol - pCurTile->m_ImgRange.MinX;
+			nRealWid = nCols - pCurTile->m_ImgRange.MinX;
 		}
 
-		if (pCurTile->m_ImgRange.MinY + G_TileWidth * iZoom <= edRow)
+		if (pCurTile->m_ImgRange.MinY + G_TileWidth * iZoom <= nRows)
 		{
 			nRealHei = G_TileWidth * iZoom;
 		}
 		else
 		{
-			nRealHei = edRow - pCurTile->m_ImgRange.MinY;
+			nRealHei = nRows - pCurTile->m_ImgRange.MinY;
 		}
-// 
-// 		if (pCurTile->m_ImgRange.MinX > edCol || pCurTile->m_ImgRange.MinY > edRow || pCurTile->m_ImgRange.MaxX < stCol || pCurTile->m_ImgRange.MaxY < stRow)
-// 		{
-// 			continue;
-// 		}
+		memset(data2, 255, datalen);
 
-		pCurTile->m_pTexture = pTexturePool->GetTexture();
+		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data2, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * nRealWid / iZoom * nPixelSize, nPixelSize);
+		//替换纠正数据
+		//将纠正结果重采样至当前纹理尺度
+		//nDataX->(edCol-stCol)->nRealWid/iZoom
 
+		int stX = max(stCol*1., pCurTile->m_ImgRange.MinX);
+		int stY = max(stRow*1., pCurTile->m_ImgRange.MinY);
+		int edX = min(edCol*1., pCurTile->m_ImgRange.MinX + nRealWid);
+		int edY = min(edRow*1., pCurTile->m_ImgRange.MinY + nRealHei);
 	
-		int stImgX = max(stCol*1.0, pCurTile->m_ImgRange.MinX);
-		int stImgY = max(stRow*1.0, pCurTile->m_ImgRange.MinY);
-		int edImgX = min(edCol*1.0, pCurTile->m_ImgRange.MaxX);
-		int edImgY = min(edRow*1.0, pCurTile->m_ImgRange.MaxY);
 
-		int nImgX = nRealWid;
-		int nImgY = nRealHei;
-		int nMemX = nRealWid / iZoom;
-		int nMemY = nRealHei / iZoom;
+		for (int i = stY; i<=edY; i++)
+		{
+			for (int j = stX; j <=edX; j++)
+			{
+				for (int k = 0; k<nBandCount; k++)
+				{
+					int iTex = min(255., max(0.,(i - pCurTile->m_ImgRange.MinY) / iZoom));
+					int jTex = min(255., max(0.,(j - pCurTile->m_ImgRange.MinX) / iZoom));
+					int iDat = min(nDataY-1,max(0,(i - stRow) / iZoom));
+					int jDat = min(nDataX-1,max(0,(j - stCol) / iZoom));
 
+					int nIdxTex = iTex*nRealWid / iZoom*nBandCount + jTex*nBandCount + k;
+					int nIdxDat = iDat*nDataX*nBandCount + jDat*nBandCount + k;
+
+					data2[nIdxTex] = data[nIdxDat];
+				}
+			}
+		}
+
+
+		if (dT == GDT_UInt16)
+		{
+			if (m_bColorTableExist)
+			{
+				Trans16To8(data2, 256, 256, nBandCount, &m_ColorTable);
+			}
+			else
+			{
+				Trans16To8(data2, 256, 256, nBandCount);
+			}
+		}
+		else if (dT == GDT_Byte)
+		{
+			if (m_bColorTableExist)
+			{
+				Trans8To8(data2, 256, 256, nBandCount, &m_ColorTable);
+			}
+			if (nBandCount == 4)
+			{
+				BGR2RGB(data2, 256, 256, nBandCount); //RGBA
+			}
+		}
+
+		if (err == CE_Failure)
+		{
+			GDALClose(pDataSet);
+			return;
+		}
 		/*-----在前一个版本中将wglMakeCurrent放在OrthoSet之中，这样会照成问题：前一个线程尚未结束实，下一个线程可能已经开始，这样造成RC正在使用无法更改-----*/
 		/*-----向纹理传输数据-----*/
 		MultiThreadWGLMakeCurrent(pTexturePool->GetDC(), pTexturePool->GetRC());
@@ -625,7 +694,9 @@ void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		glBufferData(GL_ARRAY_BUFFER, 96, vertexcoord, GL_DYNAMIC_DRAW);
 		MultiThreadWGLMakeCurrent(NULL, NULL);
 	}
+	GDALClose(pDataSet);
 	if (data2) delete[]data2;
+
 }
 
 
@@ -797,6 +868,18 @@ const string& Image::GetDOMFileName()
 vector<vector<unsigned short>>& Image::GetColorTable()
 {
 	return m_ColorTable;
+}
+
+int Image::GetiZoom(GLTexturePool* pTexturePool)
+{
+	int iZoom = 0;
+	if (m_CurTiles.size() > 0 && pTexturePool)
+	{
+		ImageTile* pCurTile = m_CurTiles[0];
+		pCurTile->m_pTexture = pTexturePool->GetTexture();
+		iZoom = 1 << pCurTile->m_PyrLevel;
+	}
+	return iZoom;
 }
 
 /************************************************************************/

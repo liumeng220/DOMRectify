@@ -76,7 +76,7 @@ public:
 
 	void LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool* bStop);
 
-	void UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY,int nBandCount);
+	void UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool* bStop, BYTE *data, int stCol, int stRow, int edCol, int edRow, double zoomRate, int nDataX, int nDataY);
 
 	OGREnvelope GetGroundRange() { return m_GroundRange; };
 
@@ -103,6 +103,8 @@ public:
 	void InitialQuadTree();
 
 	vector<vector<unsigned short>>& GetColorTable();
+
+	int GetiZoom(GLTexturePool* pTexturePool);
 
 protected:
 	void Destroy();

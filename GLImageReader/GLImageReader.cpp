@@ -349,7 +349,8 @@ void ImageReader::UpdateCurTex(BYTE * data, int stCol, int stRow, int edCol, int
 	//{
 	if (m_Images.size() > 0)
 	{
-		m_Images[0]->UpdateCurrentTexData(m_pRGBPool, false, &m_bStop, data, stCol, stRow, edCol, edRow, zoomRate, nDataX, nDataY, nBandCount);
+//		m_Images[0]->LoadCurrentTexData2(m_pLUMPool, true, &m_bStop);
+		m_Images[0]->UpdateCurrentTexData(m_pRGBPool, false, &m_bStop, data, stCol, stRow, edCol, edRow, zoomRate, nDataX, nDataY);
 	}
 	m_bStop = true;
 	//}

@@ -393,7 +393,7 @@ void CDOMRectifyPrj::SavePoint(ImageReader * pReader)
 	}
 	fclose(pf); pf = NULL;
 	DomImg->Clear();
-	if (DomImg) delete DomImg;
+	//if (DomImg) delete DomImg;
 }
 
 void CDOMRectifyPrj::SelPoint(OGREnvelope enve)

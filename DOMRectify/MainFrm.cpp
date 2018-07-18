@@ -97,7 +97,8 @@ CMainFrame::~CMainFrame()
 	ClearData();
 }
 
-void CMainFrame::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data)
+//void CMainFrame::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data)
+void CMainFrame::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, unsigned int*&data)
 {
 	OrthoImage *pImg = new OrthoImage;
 	pImg->LoadDOM(strImagePath.GetBuffer(),"");
@@ -485,8 +486,9 @@ void CMainFrame::AutoRectifyOnTIme(bool bAddPoint)
 	int width = (edCol - stCol + 1) / m_pReaderStere->GetiZoom();
 	int height = (edRow - stRow + 1) / m_pReaderStere->GetiZoom();
 	//读取影像灰度-后续换算成从纹理获取
-	BYTE *data=new BYTE[1],*data2=new BYTE[1];
-	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, width, height, data);
+	//BYTE *data=new BYTE[1],*data2=new BYTE[1];
+	unsigned int *data3; unsigned short *data2;
+	ReadImage(m_Project.GetCurDomPath(), stCol, stRow, edCol, edRow, width, height, data3);
  //	SaveImage(m_strPrjPath + ".tif", width, height, DomImg->GetBandCount(), data, "GTiff");
 // 	return;
 
@@ -507,8 +509,8 @@ void CMainFrame::AutoRectifyOnTIme(bool bAddPoint)
 	{
 		if (m_vecSelPoints.size() == 0)
 		{
-			if (data) delete[]data;
-			if (data2) delete[]data2;
+			if (data3) delete[]data3;
+			//if (data2) delete[]data2;
 			return;
 		}
 		vector<char*> vecIdSel(m_vecSelPoints.size());
@@ -522,12 +524,40 @@ void CMainFrame::AutoRectifyOnTIme(bool bAddPoint)
 		vector<stuMatchPoint>().swap(m_vecSelPoints);
 		vector<char*>().swap(vecIdSel);
 	}
-	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, width, height, data, &data2);   //lkb这个函数有问题？？
+
+
+	unsigned short* data = new unsigned short[width*height * 1];
+
+	for (unsigned i = 0; i < width*height * 1; i++)
+	{
+		if (data3[i] > 255) data[i] = 255;
+		else
+			data[i] = (unsigned short)data3[i];
+
+	}
+
+
+	m_RectifyHander.smallareaTinyFacet(stRow, stCol, fZoomRate, height, width, data, &data2);   //lkb这个函数有问题？？
 //	SaveImage(m_strPrjPath + ".tif.tif", width, height, 4, data2, "GTiff");
 	/**************************************/
 	//此处替换纹理
 //	data2 = new BYTE[width*height * 4]; memset(data2, 0, width*height * 4);
-	m_pReaderStere->UpdateCurTex(data2, stCol, stRow, edCol, edRow, fZoomRate, width, height, DomImg->GetBandCount());
+
+
+	BYTE* data4 = new BYTE[width*height * 1];
+
+	memset(data4, 0, sizeof(BYTE)*width*height);
+
+	for (unsigned i = 0; i < width*height * 1; i++)
+	{
+
+		data4[i] = (BYTE)data2[i];
+	}
+
+
+
+	//m_pReaderStere->UpdateCurTex(data2, stCol, stRow, edCol, edRow, fZoomRate, width, height, DomImg->GetBandCount());
+	m_pReaderStere->UpdateCurTex(data4, stCol, stRow, edCol, edRow, fZoomRate, width, height, DomImg->GetBandCount());
 	if (data) delete[]data;
 	if (data2) delete[]data2;
 }

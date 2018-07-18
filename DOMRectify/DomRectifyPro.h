@@ -101,7 +101,7 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 	int nrange = 254;
 	if (sizeof(T) == sizeof(unsigned short)) nrange = 65535;
 	//小面元纠正
-	if (*poutdata) { delete[](*poutdata); *poutdata = NULL; }
+	//if (*poutdata) { delete[](*poutdata); *poutdata = NULL; }
 	T *pdata = new T[lrows*lcols*nPxlBytes];
 	memcpy(pdata, plindata, sizeof(T)*lrows*lcols*nPxlBytes);
 
@@ -110,8 +110,10 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 	memcpy(pt, m_matchptlist.data(), sizeof(CorrespondPt)*npt);
 	CorrespondPt *pttemp = pt; 
 	for (int i = 0; i < npt; i++, pttemp++){
-		pttemp->lx = (pttemp->lx - slrow) * fzoom; pttemp->ly = (pttemp->ly - slcol) * fzoom;
-		pttemp->rx = (pttemp->rx - slrow) * fzoom; pttemp->ry = (pttemp->ry - slcol) * fzoom;
+		//pttemp->lx = (pttemp->lx - slrow) * fzoom; pttemp->ly = (pttemp->ly - slcol) * fzoom;
+		//pttemp->rx = (pttemp->rx - slrow) * fzoom; pttemp->ry = (pttemp->ry - slcol) * fzoom;
+		pttemp->lx = pttemp->lx  * fzoom; pttemp->ly = pttemp->ly * fzoom;
+		pttemp->rx = pttemp->rx  * fzoom; pttemp->ry = pttemp->ry * fzoom;
 	}
 
 	int* pTinIdx = NULL;
@@ -153,7 +155,8 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 
 		T* pRow = (T*)pdata;
 		double xc[4], yc, xi, x, y;
-		for (int yi = 0; yi <= lrows; yi++, pRow += lcols*nPxlBytes) {
+		//for (int yi = 0; yi <= lrows; yi++, pRow += lcols*nPxlBytes) {
+		for (int yi = 0; yi < lrows; yi++, pRow += lcols*nPxlBytes) {
 			int n = 0;
 			yc = yi;
 			for (int j = 0; j < 3; j++) {
@@ -190,7 +193,7 @@ inline void DomRectifyPro::smallareaTinyFacet(int slrow, int slcol, float fzoom,
 		}
 	}
 
-	if (pTinIdx != NULL) { delete[] pTinIdx; pTinIdx = NULL; }
+	//if (pTinIdx != NULL) { delete[] pTinIdx; pTinIdx = NULL; }
 	if (pt) { delete[]pt; pt = NULL; }
 	*poutdata = pdata;
 

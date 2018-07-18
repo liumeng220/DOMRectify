@@ -55,14 +55,14 @@ class GLIMAGEWAPI Image
 {
 	struct QuadNode
 	{
-		 QuadNode() { memset(children, 0, sizeof(void*) * 4); }
-		~QuadNode(){}
-		 ImageTile  tile;
-		 QuadNode   *children[4];
+		QuadNode() { memset(children, 0, sizeof(void*) * 4); }
+		~QuadNode() {}
+		ImageTile  tile;
+		QuadNode   *children[4];
 	};
 public:
-	 Image();
-	 virtual ~Image();
+	Image();
+	virtual ~Image();
 
 	virtual void Clear();
 
@@ -167,7 +167,7 @@ public:
 
 	int GetTriangleVBO();
 
-	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data);
+	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, unsigned int*&data);
 public:
 	string                              m_Imgname;
 	string							    m_BonName;

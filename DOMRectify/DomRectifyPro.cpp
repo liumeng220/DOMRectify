@@ -582,7 +582,8 @@ void DomRectifyPro::rectifyDomImages()
 		pBuffer = new unsigned char[nCols*NROWS*nPxlBytes];
 		break;
 	case CIdpmImage::RDT_UINT16:
-		pBuffer = new unsigned char[nCols*NROWS*nPxlBytes];
+		//pBuffer = new unsigned char[nCols*NROWS*nPxlBytes];
+		pBuffer = new unsigned short[nCols*NROWS*nPxlBytes];
 		break;
 	default:
 		break;

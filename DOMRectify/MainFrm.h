@@ -22,6 +22,7 @@
 #include "DOMRectifyPrj.h"
 #include "GradientProgressCtrl.h"
 #include "DomRectifyPro.h"
+
 class CChildFrame;
 class CDlgPrjNew;
 class CDlgPrjNew2;
@@ -47,7 +48,8 @@ public:
 	bool m_bAutoSelectRef;
 	bool m_bViewPoint;
 	bool m_bAutoRectify;
-	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data);
+	//void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE*&data);
+	void ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, unsigned int*&data);
 	void SaveImage(CString strImagePath, int nCols, int nRows, int nBands, BYTE*data, const char*pszFormat);
 
 	// Ьиад

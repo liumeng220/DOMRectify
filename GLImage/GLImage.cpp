@@ -2,12 +2,15 @@
 //
 
 #include "stdafx.h"
+
+#include "windows.h"
 #include "GLImage.h"
 #include "GL/GLObjects.h"
 #include "Geometry/GeometryIO.h"
 #include "Geometry/GeometryOP.h"
 #include "Geometry/DelaunayTriangleation.h"
 #include "ColorTable.h"
+
 
 ImageTile::ImageTile()
 {
@@ -202,17 +205,17 @@ bool Image::LoadImage(const std::string & domfilename, OGREnvelope enve)
 	/************************************************************************/
 	/*							根据enve设置地理信息                         */
 	/************************************************************************/
-// 	CPLErr err = pDataSet->GetGeoTransform(m_GeoTrans);
-// 	if (err == CPLErr::CE_Failure)
-// 	{
-// 		m_GeoTrans[0] = 0.0; m_GeoTrans[1] = 1.0; m_GeoTrans[2] = 0.0;
-// 		m_GeoTrans[3] = m_Rows; m_GeoTrans[4] = 0.0; m_GeoTrans[5] = -1.0;
-// 		m_GSD = 1.0; //按照像素计数
-// 	}
-// 	else
-// 	{
-// 		m_GSD = m_GeoTrans[1];
-// 	}
+	// 	CPLErr err = pDataSet->GetGeoTransform(m_GeoTrans);
+	// 	if (err == CPLErr::CE_Failure)
+	// 	{
+	// 		m_GeoTrans[0] = 0.0; m_GeoTrans[1] = 1.0; m_GeoTrans[2] = 0.0;
+	// 		m_GeoTrans[3] = m_Rows; m_GeoTrans[4] = 0.0; m_GeoTrans[5] = -1.0;
+	// 		m_GSD = 1.0; //按照像素计数
+	// 	}
+	// 	else
+	// 	{
+	// 		m_GSD = m_GeoTrans[1];
+	// 	}
 	m_GSD = (enve.MaxX - enve.MinX) / m_Cols;
 	m_GroundRange = enve;
 	/************************************************************************/
@@ -347,34 +350,34 @@ void   Image::LoadCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		{
 			nRealHei = nRows - pCurTile->m_ImgRange.MinY;
 		}
- 		CPLErr err =  pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * G_TileWidth * nPixelSize, nPixelSize);
- 
- 		if (dT == GDT_UInt16)
- 		{
- 			if (m_bColorTableExist)
- 			{
- 				Trans16To8(data, 256, 256, 3, &m_ColorTable);
- 			}
- 			else
- 			{
- 				Trans16To8(data, 256, 256, 3);
- 			}
- 			if (nBandCount == 4)
- 			{
- 				BGR2RGB(data, 256, 256, nBandCount);
- 			}
- 		}
- 		else if (dT == GDT_Byte)
- 		{
- 			if (m_bColorTableExist)
- 			{
- 				Trans8To8(data, 256, 256, 3, &m_ColorTable);
- 			}
- 			if (nBandCount == 4)
- 			{
- 				BGR2RGB(data, 256, 256, nBandCount); //RGBA
- 			}
- 		}
+		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * G_TileWidth * nPixelSize, nPixelSize);
+
+		if (dT == GDT_UInt16)
+		{
+			if (m_bColorTableExist)
+			{
+				Trans16To8(data, 256, 256, 3, &m_ColorTable);
+			}
+			else
+			{
+				Trans16To8(data, 256, 256, 3);
+			}
+			if (nBandCount == 4)
+			{
+				BGR2RGB(data, 256, 256, nBandCount);
+			}
+		}
+		else if (dT == GDT_Byte)
+		{
+			if (m_bColorTableExist)
+			{
+				Trans8To8(data, 256, 256, 3, &m_ColorTable);
+			}
+			if (nBandCount == 4)
+			{
+				BGR2RGB(data, 256, 256, nBandCount); //RGBA
+			}
+		}
 
 		if (err == CE_Failure)
 		{
@@ -395,7 +398,7 @@ void   Image::LoadCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		m_TileRange.MaxX = m_GroundRange.MinX + pCurTile->m_ImgRange.MaxX * m_GSD;
 		m_TileRange.MinY = m_GroundRange.MaxY - pCurTile->m_ImgRange.MaxY * m_GSD;
 		m_TileRange.MaxY = m_GroundRange.MaxY - pCurTile->m_ImgRange.MinY * m_GSD;
-		float vertexcoord[24] = { 
+		float vertexcoord[24] = {
 			m_TileRange.MinX, m_TileRange.MaxY, m_OrthoID, 1.0f,
 			m_TileRange.MaxX, m_TileRange.MaxY, m_OrthoID, 1.0f,
 			m_TileRange.MaxX, m_TileRange.MinY, m_OrthoID, 1.0f,
@@ -481,10 +484,10 @@ void   Image::LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool
 			{
 				Trans16To8(data, 256, 256, nBandCount);
 			}
-// 			if (nBandCount == 4)
-// 			{
-// 				BGR2RGB(data, 256, 256, nBandCount);
-// 			}
+			// 			if (nBandCount == 4)
+			// 			{
+			// 				BGR2RGB(data, 256, 256, nBandCount);
+			// 			}
 		}
 		else if (dT == GDT_Byte)
 		{
@@ -506,7 +509,7 @@ void   Image::LoadCurrentTexData2(GLTexturePool* pTexturePool, bool bForce, bool
 		/*-----在前一个版本中将wglMakeCurrent放在OrthoSet之中，这样会照成问题：前一个线程尚未结束实，下一个线程可能已经开始，这样造成RC正在使用无法更改-----*/
 		/*-----向纹理传输数据-----*/
 		MultiThreadWGLMakeCurrent(pTexturePool->GetDC(), pTexturePool->GetRC());
-		if(pCurTile->m_pTexture)
+		if (pCurTile->m_pTexture)
 			glBindTexture(GL_TEXTURE_2D, pCurTile->m_pTexture->tex);
 		if (nBandCount == 4)
 		{
@@ -569,23 +572,37 @@ void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 	int nRows = pDataSet->GetRasterYSize();
 	int nBandCount = pDataSet->GetRasterCount();
 
-	int datalen = 256 * 256 * 4 * 2;
-	BYTE *data2 = new BYTE[datalen];
+
 	int nPixelCount = 256 * 256 * nBandCount;
+
+
+
+
+
 
 	for (int i = 0; i < iCurTexCount; ++i)
 	{
+
+
 		if (*bStop)
 		{
 			GDALClose(pDataSet); return;
 		}
 		ImageTile* pCurTile = m_CurTiles[i];
-// 		if (pCurTile->m_pTexture != NULL && bForce == false)
-// 		{
-// 			continue;
-// 		}
+
+
+		// 		if (pCurTile->m_pTexture != NULL && bForce == false)
+		// 		{
+		// 			continue;
+		// 		}
 		pCurTile->m_pTexture = pTexturePool->GetTexture();
 		int iZoom = 1 << pCurTile->m_PyrLevel;
+
+		int datalen = 256 * 256 * iZoom;
+		double *data3 = new double[datalen];
+		BYTE *data2 = new BYTE[datalen];
+
+
 
 		int nRealWid = 0, nRealHei = 0;
 		if (pCurTile->m_ImgRange.MinX + G_TileWidth * iZoom <= nCols)
@@ -605,29 +622,47 @@ void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		{
 			nRealHei = nRows - pCurTile->m_ImgRange.MinY;
 		}
-		memset(data2, 255, datalen);
+		memset(data3, 255.0, datalen);
 
-		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data2, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * nRealWid / iZoom * nPixelSize, nPixelSize);
+		//CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data2, nRealWid / iZoom, nRealHei / iZoom, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * nRealWid / iZoom * nPixelSize, nPixelSize);
+		CPLErr err = pDataSet->RasterIO(GF_Read, pCurTile->m_ImgRange.MinX, pCurTile->m_ImgRange.MinY, nRealWid, nRealHei, data3, nRealWid / iZoom, nRealHei / iZoom, GDT_Float64, nBandCount, bandsmap, 0, 0, 0);
 		//替换纠正数据
 		//将纠正结果重采样至当前纹理尺度
 		//nDataX->(edCol-stCol)->nRealWid/iZoom
+
+		//pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol + 1, edrow - strow + 1, datatemp1, memWidth, memHeight, GDT_Float64, 1, 0, 0, 0, 0);
+
+
+
+
+		memset(data2, 0, datalen);
+
+
+
+		for (unsigned i = 0; i < datalen; i++)
+		{
+			data2[i] = data3[i];
+
+		}
+
+
 
 		int stX = max(stCol*1., pCurTile->m_ImgRange.MinX);
 		int stY = max(stRow*1., pCurTile->m_ImgRange.MinY);
 		int edX = min(edCol*1., pCurTile->m_ImgRange.MinX + nRealWid);
 		int edY = min(edRow*1., pCurTile->m_ImgRange.MinY + nRealHei);
-	
 
-		for (int i = stY; i<=edY; i++)
+
+		for (int i = stY; i <= edY; i++)
 		{
-			for (int j = stX; j <=edX; j++)
+			for (int j = stX; j <= edX; j++)
 			{
 				for (int k = 0; k<nBandCount; k++)
 				{
-					int iTex = min(255., max(0.,(i - pCurTile->m_ImgRange.MinY) / iZoom));
-					int jTex = min(255., max(0.,(j - pCurTile->m_ImgRange.MinX) / iZoom));
-					int iDat = min(nDataY-1,max(0,(i - stRow) / iZoom));
-					int jDat = min(nDataX-1,max(0,(j - stCol) / iZoom));
+					int iTex = min(255., max(0., (i - pCurTile->m_ImgRange.MinY) / iZoom));
+					int jTex = min(255., max(0., (j - pCurTile->m_ImgRange.MinX) / iZoom));
+					int iDat = min(nDataY - 1, max(0, (i - stRow) / iZoom));
+					int jDat = min(nDataX - 1, max(0, (j - stCol) / iZoom));
 
 					int nIdxTex = iTex*nRealWid / iZoom*nBandCount + jTex*nBandCount + k;
 					int nIdxDat = iDat*nDataX*nBandCount + jDat*nBandCount + k;
@@ -638,15 +673,22 @@ void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		}
 
 
+
+		for (unsigned i = 0; i < datalen; i++)
+		{
+			data2[i] = data2[i] * 0.9;
+
+		}
+
 		if (dT == GDT_UInt16)
 		{
 			if (m_bColorTableExist)
 			{
-				Trans16To8(data2, 256, 256, nBandCount, &m_ColorTable);
+				//Trans16To8(data2, nDataX, nDataY, nBandCount, &m_ColorTable);
 			}
 			else
 			{
-				Trans16To8(data2, 256, 256, nBandCount);
+				//Trans16To8(data2, 256, 256, nBandCount);
 			}
 		}
 		else if (dT == GDT_Byte)
@@ -668,6 +710,8 @@ void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		}
 		/*-----在前一个版本中将wglMakeCurrent放在OrthoSet之中，这样会照成问题：前一个线程尚未结束实，下一个线程可能已经开始，这样造成RC正在使用无法更改-----*/
 		/*-----向纹理传输数据-----*/
+
+
 		MultiThreadWGLMakeCurrent(pTexturePool->GetDC(), pTexturePool->GetRC());
 		glBindTexture(GL_TEXTURE_2D, pCurTile->m_pTexture->tex);
 		if (nBandCount == 4)
@@ -693,9 +737,19 @@ void Image::UpdateCurrentTexData(GLTexturePool* pTexturePool, bool bForce, bool*
 		glBindBuffer(GL_ARRAY_BUFFER, pCurTile->m_pTexture->vbo);
 		glBufferData(GL_ARRAY_BUFFER, 96, vertexcoord, GL_DYNAMIC_DRAW);
 		MultiThreadWGLMakeCurrent(NULL, NULL);
+
+
+		if (data2) delete[]data2;
+
+		if (data3) delete[]data3;
+
+
 	}
 	GDALClose(pDataSet);
-	if (data2) delete[]data2;
+	//if (data2) delete[]data2;
+
+
+
 
 }
 
@@ -810,7 +864,7 @@ int    Image::GetCols() const
 {
 	return m_Cols;
 }
- 
+
 int    Image::GetRows() const
 {
 	return m_Rows;
@@ -930,7 +984,7 @@ bool OrthoImage::LoadDOM(const std::string & domfilename, const std::string & bo
 	return true;
 }
 
-bool OrthoImage::LoadDOM(const std::string& domfilename, const std::string& bonfilename,OGREnvelope enve)
+bool OrthoImage::LoadDOM(const std::string& domfilename, const std::string& bonfilename, OGREnvelope enve)
 {
 	Clear();
 	Image::LoadImage(domfilename, enve);
@@ -995,9 +1049,14 @@ int  OrthoImage::GetTriangleVBO()
 	return m_TriangleVBOID;
 }
 
-void OrthoImage::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, BYTE *&data)
+
+void OrthoImage::ReadImage(CString strImagePath, int stcol, int strow, int edcol, int edrow, int memWidth, int memHeight, unsigned int *&data)
 {
-//	BYTE*data2 = *data;
+	//	BYTE*data2 = *data;
+
+	GDALAllRegister();
+
+	CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 	GDALDataset* pDataSet = (GDALDataset *)GDALOpen(strImagePath, GA_ReadOnly);
 	if (!pDataSet)
 	{
@@ -1023,36 +1082,59 @@ void OrthoImage::ReadImage(CString strImagePath, int stcol, int strow, int edcol
 	}
 
 	int nPixelCount = 256 * 256 * 3;
-	data = new BYTE[memWidth*memHeight*nBandCount];
+	data = new unsigned int[memWidth*memHeight*nBandCount];
 	memset(data, 0, memWidth*memHeight*nBandCount);
 
-	CPLErr err = pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol + 1, edrow - strow + 1, data, memWidth, memHeight, dT, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * memWidth * nPixelSize, nPixelSize);
+
+
+	unsigned int* datatemp = new unsigned int[memWidth*memHeight*nBandCount];
+
+
+	double* datatemp1 = new double[memWidth*memHeight*nBandCount];
+
+	CPLErr err = pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol + 1, edrow - strow + 1, data, memWidth, memHeight, GDT_UInt32, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * memWidth * nPixelSize, nPixelSize);
+
+	//CPLErr err1 = pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol + 1, edrow - strow + 1, datatemp1, memWidth, memHeight, GDT_Float64, nBandCount, bandsmap, nBandCount * nPixelSize, nBandCount * memWidth * nPixelSize, nPixelSize);
+
+
+	pDataSet->RasterIO(GF_Read, stcol, strow, edcol - stcol + 1, edrow - strow + 1, datatemp1, memWidth, memHeight, GDT_Float64, 1, bandsmap, 0, 0, 0);
+
+	for (unsigned i = 0; i < memWidth*memHeight*nBandCount; i++)
+	{
+		data[i] = (unsigned int)datatemp1[i];
+
+	}
+
+
+
+
 
 	if (dT == GDT_UInt16)
 	{
+		m_bColorTableExist = false;
 		if (m_bColorTableExist)
 		{
-			Trans16To8(data, 256, 256, 3, &m_ColorTable);
+			//Trans16To8(data, 256, 256, 3, &m_ColorTable);
 		}
 		else
 		{
-			Trans16To8(data, 256, 256, 3);
+			Trans16To8I(data, memWidth, memHeight, 1);
 		}
 		if (nBandCount == 4)
 		{
-			BGR2RGB(data, 256, 256, nBandCount);
+			//BGR2RGB(data, 256, 256, nBandCount);
 		}
 	}
 	else if (dT == GDT_Byte)
 	{
-// 		if (m_bColorTableExist)
-// 		{
-// 			Trans8To8(data2, 256, 256, 3, &m_ColorTable);
-// 		}
-// 		if (nBandCount == 4)
-// 		{
-// 			BGR2RGB(data2, 256, 256, nBandCount); //RGBA
-// 		}
+		// 		if (m_bColorTableExist)
+		// 		{
+		// 			Trans8To8(data2, 256, 256, 3, &m_ColorTable);
+		// 		}
+		// 		if (nBandCount == 4)
+		// 		{
+		// 			BGR2RGB(data2, 256, 256, nBandCount); //RGBA
+		// 		}
 	}
 	GDALClose(pDataSet);
 }
